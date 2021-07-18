@@ -71,6 +71,11 @@ func createPackage(filePath string) (Package, error) {
 func createTask(pkg Package) (Task, error) {
 	url := createConsoleRoute("install")
 
+	defaultTask := Task{
+		ID:     0,
+		Status: "fail",
+	}
+
 	data := map[string]interface{}{
 		"type":     "direct",
 		"packages": []string{createHostRoute(pkg.ID)},
@@ -79,24 +84,24 @@ func createTask(pkg Package) (Task, error) {
 	body, err := json.Marshal(data)
 
 	if err != nil {
-		return Task{}, err
+		return defaultTask, err
 	}
 
 	res, err := client.Post(url, "application/json", bytes.NewBuffer([]byte(body)))
 
 	if err != nil {
-		return Task{}, err
+		return defaultTask, err
 	}
 
 	if res.StatusCode != 200 {
-		return Task{}, fmt.Errorf("status code != 200, was %d", res.StatusCode)
+		return defaultTask, fmt.Errorf("status code != 200, was %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
 	body, err = ioutil.ReadAll(res.Body)
 
 	if err != nil {
-		return Task{}, errors.New("failed to read the response body")
+		return defaultTask, errors.New("failed to read the response body")
 	}
 
 	processed := reHex.ReplaceAll([]byte(body), []byte(`"$1"`))
@@ -112,7 +117,7 @@ func createTask(pkg Package) (Task, error) {
 			ec = "the given title ID already exists"
 		}
 
-		return Task{}, errors.New(ec)
+		return defaultTask, errors.New(ec)
 	}
 
 	return task, nil

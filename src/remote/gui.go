@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/andlabs/ui"
@@ -28,6 +30,7 @@ func (mh *ModelHandler) ColumnTypes(m *ui.TableModel) []ui.TableValue {
 		ui.TableString(""), // Database Entry ID
 		ui.TableString(""), // File Base Name
 		ui.TableString(""), // File Size
+		ui.TableString(""), // Task Status
 		ui.TableInt(0),     // Download Progress
 	}
 }
@@ -56,6 +59,8 @@ func (mh *ModelHandler) CellValue(m *ui.TableModel, row, column int) ui.TableVal
 	case 2:
 		return ui.TableString(humanize.Bytes(pkg.Size))
 	case 3:
+		return ui.TableString(strings.Title(pkg.Task.Status))
+	case 4:
 		return ui.TableInt(pkg.Progress)
 	}
 
@@ -66,7 +71,7 @@ func (mh *ModelHandler) SetCellValue(m *ui.TableModel, row, column int, value ui
 
 func setupUI() {
 	err := ui.Main(func() {
-		window := ui.NewWindow("Remote", 750, 260, false)
+		window := ui.NewWindow("Remote", 870, 260, false)
 		window.SetMargined(true)
 
 		boxFull := ui.NewHorizontalBox()
@@ -102,10 +107,12 @@ func setupUI() {
 		consoleBoxAddress = ui.NewEntry()
 
 		consoleBoxAddress.OnChanged(func(e *ui.Entry) {
-			if consoleBoxAddress.Text() == "" {
-				fileListButton.Disable()
-			} else {
+			addr := net.ParseIP(consoleBoxAddress.Text())
+
+			if addr != nil {
 				fileListButton.Enable()
+			} else {
+				fileListButton.Disable()
 			}
 		})
 
@@ -124,7 +131,8 @@ func setupUI() {
 		fileListBoxModelHandler := newModelHandler()
 		fileListBoxModel = ui.NewTableModel(fileListBoxModelHandler)
 		fileListBoxTable := ui.NewTable(&ui.TableParams{
-			Model: fileListBoxModel,
+			Model:                         fileListBoxModel,
+			RowBackgroundColorModelColumn: 1,
 		})
 
 		fileListButton.OnClicked(func(*ui.Button) {
@@ -144,17 +152,17 @@ func setupUI() {
 			packages = append(packages, pkg)
 			fileListBoxModel.RowInserted(int(pkg.Row))
 
-			task, err := createTask(pkg)
-
-			if err != nil {
-				ui.MsgBoxError(window, "Console Error", fmt.Sprintf("Error encountered, %s.", err.Error()))
-				return
-			}
-
-			packages[pkg.Row].Task = task
-			fileListBoxModel.RowChanged(int(pkg.Row))
-
 			go func() {
+				task, err := createTask(pkg)
+
+				packages[pkg.Row].Task = task
+				fileListBoxModel.RowChanged(int(pkg.Row))
+
+				if err != nil {
+					ui.MsgBoxError(window, "Console Error", fmt.Sprintf("Error encountered, %s.", err.Error()))
+					return
+				}
+
 				for {
 					progress, err := getTaskProgress(task)
 
@@ -177,7 +185,8 @@ func setupUI() {
 		fileListBoxTable.AppendTextColumn("ID", 0, ui.TableModelColumnNeverEditable, nil)
 		fileListBoxTable.AppendTextColumn("Name", 1, ui.TableModelColumnNeverEditable, nil)
 		fileListBoxTable.AppendTextColumn("Size", 2, ui.TableModelColumnNeverEditable, nil)
-		fileListBoxTable.AppendProgressBarColumn("Progress", 3)
+		fileListBoxTable.AppendTextColumn("Status", 3, ui.TableModelColumnNeverEditable, nil)
+		fileListBoxTable.AppendProgressBarColumn("Progress", 4)
 
 		fileListBox.Append(fileListBoxTable, true)
 

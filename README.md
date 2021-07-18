@@ -24,7 +24,3 @@ From here, you will have generated a `remote` binary. For Windows users, this wi
 2. Start Remote and select the IPv4 address you would like to use for the host under `Server > Address`.
 3. Enter the local IPv4 address of your PlayStation 4 into the `Console > Address` field.
 4. Click `Add file` and double click the package file you'd like to install. It **must** end with `.pkg`.
-
-## To-do
-
-* Implement either [GoReleaser](https://goreleaser.com/) or another way to automate cross-platform release generation, possibly using Docker or a Makefile.

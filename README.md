@@ -13,7 +13,7 @@ Native UI for installing PS4 packages remotely using [`ui`](https://github.com/a
 
 ```bash
 git clone https://github.com/ramadan8/Remote && cd Remote
-go build ./src/remote
+go build
 ```
 
 From here, you will have generated a `remote` binary. For Windows users, this will show as a singular `.exe` file.
